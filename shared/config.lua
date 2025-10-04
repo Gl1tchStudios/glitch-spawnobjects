@@ -17,4 +17,4 @@ Config.ignoreSceneType = {"christmas"} -- List of scene types to exclude from be
 Config.itemsPerPage = 20 -- Amount of objects shown per page via /syncedobjects
 Config.renderDistance = 150.0 -- The distance threshold (in units) at which objects will be rendered. Modify this value to adjust the render distance.
 
--- Discord logging is available, set up API key within server/apiKeys.lua if you wish to use it.
+-- Discord logging is available, set up API key within shared/apiKeys.lua if you wish to use it.

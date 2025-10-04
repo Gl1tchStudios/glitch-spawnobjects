@@ -29,3 +29,5 @@ files {
 	'locales/*.json',
 	'client/dataview.lua',
 }
+
+dependency 'ox_lib' -- https://github.com/CommunityOx/ox_lib/releases
