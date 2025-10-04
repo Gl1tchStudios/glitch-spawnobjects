@@ -363,3 +363,28 @@ function removeObject(entity)
         return true
     end
 end
+
+exports('getClosestObject', function(coords, maxDistance)
+    if not coords then
+        coords = GetEntityCoords(cache.ped)
+    end
+    
+    if not maxDistance then
+        maxDistance = math.huge
+    end
+    
+    local closestObject = nil
+    local closestDistance = maxDistance
+    
+    for _, object in pairs(objectList) do
+        local objectCoords = vector3(object.posX, object.posY, object.posZ)
+        local distance = #(coords - objectCoords)
+        
+        if distance < closestDistance then
+            closestDistance = distance
+            closestObject = object
+        end
+    end
+    
+    return closestObject, closestDistance
+end)

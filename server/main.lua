@@ -67,8 +67,7 @@ AddEventHandler('glitch-spawnobjects:requestSyncedObjects', function()
     end
 end)
 
-RegisterNetEvent("glitch-spawnobjects:createNewSyncedObject", function(model, data, sceneType)
-    local src = source
+local function createSyncedObject(src, model, data, sceneType)
     local steamIdentifier = nil
 
     for i = 0, GetNumPlayerIdentifiers(src) - 1 do
@@ -117,10 +116,14 @@ RegisterNetEvent("glitch-spawnobjects:createNewSyncedObject", function(model, da
             TriggerClientEvent('ox_lib:notify', src, {title = '', description = "Invalid data received.", type = "error", duration = 5000})
         end
     end
+end
+
+RegisterNetEvent("glitch-spawnobjects:createNewSyncedObject", function(model, data, sceneType)
+    local src = source
+    createSyncedObject(src, model, data, sceneType)
 end)
 
-RegisterNetEvent("glitch-spawnobjects:updateSyncedObject", function(model, data, objectID)
-    local src = source
+local function updateSyncedObject(src, model, data, objectID)
     local steamIdentifier = nil
 
     for i = 0, GetNumPlayerIdentifiers(src) - 1 do
@@ -163,17 +166,20 @@ RegisterNetEvent("glitch-spawnobjects:updateSyncedObject", function(model, data,
             TriggerClientEvent('ox_lib:notify', src, {title = '', description = "Invalid data received.", type = "error", duration = 5000})
         end
     end
+end
+
+RegisterNetEvent("glitch-spawnobjects:updateSyncedObject", function(model, data, objectID)
+    local src = source
+    updateSyncedObject(src, model, data, objectID)
 end)
 
-RegisterServerEvent("glitch-spawnobjects:deleteSyncedObject")
-AddEventHandler("glitch-spawnobjects:deleteSyncedObject", function(id)
-    local src = source
+local function deleteSyncedObject(src, id)
     local steamIdentifier = nil
 
     for i = 0, GetNumPlayerIdentifiers(src) - 1 do
-        local id = GetPlayerIdentifier(src, i)
-        if string.sub(id, 1, 6) == "steam:" then
-            steamIdentifier = id
+        local identifier = GetPlayerIdentifier(src, i)
+        if string.sub(identifier, 1, 6) == "steam:" then
+            steamIdentifier = identifier
             break
         end
     end
@@ -202,4 +208,23 @@ AddEventHandler("glitch-spawnobjects:deleteSyncedObject", function(id)
             end)
         end
     end
+end
+
+RegisterServerEvent("glitch-spawnobjects:deleteSyncedObject")
+AddEventHandler("glitch-spawnobjects:deleteSyncedObject", function(id)
+    local src = source
+    deleteSyncedObject(src, id)
+end)
+
+-- Exports
+exports('createProp', function(src, model, data, sceneType)
+    return createSyncedObject(src, model, data, sceneType)
+end)
+
+exports('updateProp', function(src, model, data, objectID)
+    return updateSyncedObject(src, model, data, objectID)
+end)
+
+exports('deleteProp', function(src, id)
+    return deleteSyncedObject(src, id)
 end)
