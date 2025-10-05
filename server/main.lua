@@ -105,7 +105,7 @@ local function createSyncedObject(src, model, data, sceneType)
                         rotZ = rotZ,
                         identifier = identifier
                     }
-                    TriggerClientEvent("glitch-spawnobjects:addNewSyncedProp", -1, newProp)
+                    TriggerClientEvent("glitch-spawnobjects:addNewSyncedObject", -1, newProp)
 
                     sendDiscordLog(src, "Synced Objects", GetPlayerName(src).." ["..steamIdentifier.."] ("..src..") placed a synced object (" .. model .. ") at position: (" .. posX .. ", " .. posY .. ", " .. posZ .. ") and rotation: (" .. rotX .. ", " .. rotY .. ", " .. rotZ .. ") with id: ("..insertId..")")
                 else
@@ -155,7 +155,7 @@ local function updateSyncedObject(src, model, data, objectID)
                         rotZ = rotZ,
                         identifier = identifier
                     }
-                    TriggerClientEvent("glitch-spawnobjects:addNewSyncedProp", -1, updatedProp)
+                    TriggerClientEvent("glitch-spawnobjects:addNewSyncedObject", -1, updatedProp)
 
                     sendDiscordLog(src, "Synced Objects", GetPlayerName(src).." ["..steamIdentifier.."] ("..src..") updated a synced object (" .. model .. ") at position: (" .. posX .. ", " .. posY .. ", " .. posZ .. ") and rotation: (" .. rotX .. ", " .. rotY .. ", " .. rotZ .. ") with id: ("..objectID..")")
                 else
@@ -217,14 +217,14 @@ AddEventHandler("glitch-spawnobjects:deleteSyncedObject", function(id)
 end)
 
 -- Exports
-exports('createProp', function(src, model, data, sceneType)
+exports('createObject', function(src, model, data, sceneType)
     return createSyncedObject(src, model, data, sceneType)
 end)
 
-exports('updateProp', function(src, model, data, objectID)
+exports('updateObject', function(src, model, data, objectID)
     return updateSyncedObject(src, model, data, objectID)
 end)
 
-exports('deleteProp', function(src, id)
+exports('deleteObject', function(src, id)
     return deleteSyncedObject(src, id)
 end)

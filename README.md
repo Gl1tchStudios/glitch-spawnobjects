@@ -17,9 +17,9 @@ For detailed setup instructions and usage examples, check out our documentation:
 
 ## Installation
 
-1. Download the resource and extract it to your `resources` folder
-2. Add `ensure glitch-spawnobjects` to your `server.cfg`
-3. Configure your database settings in the config file
+1. Download the resource and extract it to your `resources` folder.
+2. Add `ensure glitch-spawnobjects` to your `server.cfg`.
+3. Configure your settings in the config file.
 4. Restart your server and you're good to go!
 
 ## Support

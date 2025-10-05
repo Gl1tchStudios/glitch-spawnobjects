@@ -111,7 +111,7 @@ AddEventHandler('onResourceStop', function(resourceName)
     end
 end)
 
-RegisterNetEvent("glitch-spawnobjects:addNewSyncedProp", function(newProp)
+RegisterNetEvent("glitch-spawnobjects:addNewSyncedObject", function(newProp)
     local updated = false
 
     for index, prop in ipairs(objectList) do
