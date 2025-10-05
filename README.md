@@ -30,6 +30,8 @@ Need a hand? Got a suggestion? We're here to help!
 - Join our Discord community for general support and chat
 - Check out our documentation for common questions
 
+Discord: https://discord.gg/PAQX8ANEfw
+
 ## Special Thanks
 
 A massive shoutout to the brilliant developers whose work made this resource possible! Your contributions to the FiveM community are absolutely legendary:
