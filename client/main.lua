@@ -36,6 +36,11 @@ CreateThread(function()
                         end
 
                         SetModelAsNoLongerNeeded(object.model)
+
+                        if Config.Debug then
+                            print(string.format("^2[DEBUG] Rendered Object: %s (ID: %s) at %.2f, %.2f, %.2f^0", 
+                                object.model, object.id or "Unknown", object.posX, object.posY, object.posZ))
+                        end
                     end)
                 end
             elseif object.isRendered then
@@ -45,6 +50,11 @@ CreateThread(function()
                     object.object = nil
                     CreateThread(function()
                         removeObject(objToRemove)
+
+                        if Config.Debug then
+                            print(string.format("^1[DEBUG] Removed Object: %s (ID: %s) from %.2f, %.2f, %.2f^0", 
+                                object.model, object.id or "Unknown", object.posX, object.posY, object.posZ))
+                        end
                     end)
                 end
             end

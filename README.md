@@ -2,7 +2,7 @@
 
 G'day! Welcome to the official repository for Glitch Spawn Objects! This is a handy FiveM resource that lets you spawn and sync persistent objects across your server. Whether you need to place props, furniture, or any other objects that need to stick around, this resource has got you sorted.
 
-## Features
+## 🌟 Features
 
 - **Persistent Objects**: Spawn objects that stay exactly where you put them, even after server restarts
 - **Synchronised Spawning**: All players see the same objects in the same spots
@@ -15,14 +15,20 @@ G'day! Welcome to the official repository for Glitch Spawn Objects! This is a ha
 For detailed setup instructions and usage examples, check out our documentation:
 [https://glitchstudios.gitbook.io/glitch-studios/free-resources/glitch-spawn-objects](https://glitchstudios.gitbook.io/glitch-studios/free-resources/glitch-spawn-objects)
 
-## Installation
+## 📷 Showcase
+
+[![Glitch Spawn Objects Showcase](https://img.youtube.com/vi/E7-THYpyLZs/0.jpg)](https://www.youtube.com/watch?v=E7-THYpyLZs)
+
+*If the preview above doesn't load, you can watch the showcase video here: https://www.youtube.com/watch?v=E7-THYpyLZs*
+
+## 🛠️ Installation
 
 1. Download the resource and extract it to your `resources` folder.
 2. Add `ensure glitch-spawnobjects` to your `server.cfg`.
 3. Configure your settings in the config file.
 4. Restart your server and you're good to go!
 
-## Support
+## 🆘 Support
 
 Need a hand? Got a suggestion? We're here to help! 
 
@@ -32,7 +38,7 @@ Need a hand? Got a suggestion? We're here to help!
 
 Discord: https://discord.gg/PAQX8ANEfw
 
-## Special Thanks
+## ⭐ Special Thanks
 
 A massive shoutout to the brilliant developers whose work made this resource possible! Your contributions to the FiveM community are absolutely legendary:
 
