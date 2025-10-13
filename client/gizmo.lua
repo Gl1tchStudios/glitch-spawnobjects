@@ -158,7 +158,7 @@ end
 
 -- EXPORTS
 
-local function useGizmo(entity)
+function useGizmo(entity)
     gizmoEnabled = true
     currentEntity = entity
     textUILoop()

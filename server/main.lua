@@ -53,21 +53,29 @@ RegisterNetEvent('glitch-spawnobjects:requestSyncedObjects')
 AddEventHandler('glitch-spawnobjects:requestSyncedObjects', function()
     local src = source
     local ignoreSceneTypes = Config.ignoreSceneType or {}
+    local currentTime = os.time()
 
     if #ignoreSceneTypes > 0 then
         local placeholders = string.rep("?,", #ignoreSceneTypes):sub(1, -2)
+        local queryParams = {}
+        
+        for i, sceneType in ipairs(ignoreSceneTypes) do
+            queryParams[i] = sceneType
+        end
+        queryParams[#queryParams + 1] = currentTime
 
-        MySQL.query('SELECT * FROM synced_objects WHERE (sceneType NOT IN (' .. placeholders .. ') OR sceneType IS NULL)', ignoreSceneTypes, function(result)
+        MySQL.query('SELECT * FROM synced_objects WHERE (sceneType NOT IN (' .. placeholders .. ') OR sceneType IS NULL) AND (expiryTime IS NULL OR expiryTime > ?)', 
+            queryParams, function(result)
             TriggerClientEvent('glitch-spawnobjects:receiveSyncedObjects', src, result)
         end)
     else
-        MySQL.query('SELECT * FROM synced_objects', {}, function(result)
+        MySQL.query('SELECT * FROM synced_objects WHERE (expiryTime IS NULL OR expiryTime > ?)', {currentTime}, function(result)
             TriggerClientEvent('glitch-spawnobjects:receiveSyncedObjects', src, result)
         end)
     end
 end)
 
-local function createSyncedObject(src, model, data, sceneType)
+local function createSyncedObject(src, model, data, sceneType, duration)
     local steamIdentifier = nil
 
     for i = 0, GetNumPlayerIdentifiers(src) - 1 do
@@ -84,13 +92,18 @@ local function createSyncedObject(src, model, data, sceneType)
             local rotX, rotY, rotZ = data.rotation.x, data.rotation.y, data.rotation.z
             local identifier = steamIdentifier
             local sceneType = (sceneType and sceneType ~= "") and sceneType or nil
+            local expiryTime = nil
+            
+            if duration and duration > 0 then
+                expiryTime = os.time() + (duration * 60)
+            end
 
             if sceneType then
                 sceneType = string.lower(sceneType)
             end
 
-            MySQL.insert('INSERT INTO synced_objects (model, posX, posY, posZ, rotX, rotY, rotZ, identifier, sceneType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', {
-                model, posX, posY, posZ, rotX, rotY, rotZ, identifier, sceneType
+            MySQL.insert('INSERT INTO synced_objects (model, posX, posY, posZ, rotX, rotY, rotZ, identifier, sceneType, expiryTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', {
+                model, posX, posY, posZ, rotX, rotY, rotZ, identifier, sceneType, expiryTime
             }, function(insertId)
                 if insertId then
                     local newProp = {
@@ -103,11 +116,27 @@ local function createSyncedObject(src, model, data, sceneType)
                         rotX = rotX,
                         rotY = rotY,
                         rotZ = rotZ,
-                        identifier = identifier
+                        identifier = identifier,
+                        expiryTime = expiryTime
                     }
                     TriggerClientEvent("glitch-spawnobjects:addNewSyncedObject", -1, newProp)
 
-                    sendDiscordLog(src, "Synced Objects", GetPlayerName(src).." ["..steamIdentifier.."] ("..src..") placed a synced object (" .. model .. ") at position: (" .. posX .. ", " .. posY .. ", " .. posZ .. ") and rotation: (" .. rotX .. ", " .. rotY .. ", " .. rotZ .. ") with id: ("..insertId..")")
+                    local durationInfo = ""
+                    if expiryTime then
+                        local remainingTime = math.ceil((expiryTime - os.time()) / 60)
+                        durationInfo = " | Duration: " .. (duration or 0) .. " minutes | Expires at: " .. os.date("%Y-%m-%d %H:%M:%S", expiryTime) .. " | Remaining: " .. remainingTime .. " minutes"
+                    else
+                        durationInfo = " | Duration: Permanent"
+                    end
+                    
+                    local sceneInfo = sceneType and (" | Scene Type: " .. sceneType) or " | Scene Type: None"
+                    
+                    sendDiscordLog(src, "Synced Objects", "**OBJECT PLACED**\n" ..
+                        "Player: " .. GetPlayerName(src) .. " [" .. steamIdentifier .. "] (" .. src .. ")\n" ..
+                        "Model: " .. model .. "\n" ..
+                        "Position: (" .. posX .. ", " .. posY .. ", " .. posZ .. ")\n" ..
+                        "Rotation: (" .. rotX .. ", " .. rotY .. ", " .. rotZ .. ")\n" ..
+                        "Object ID: " .. insertId .. sceneInfo .. durationInfo)
                 else
                     TriggerClientEvent('ox_lib:notify', src, {title = '', description = "An error occurred while creating a synced object!", type = "error", duration = 5000})
                 end
@@ -118,9 +147,9 @@ local function createSyncedObject(src, model, data, sceneType)
     end
 end
 
-RegisterNetEvent("glitch-spawnobjects:createNewSyncedObject", function(model, data, sceneType)
+RegisterNetEvent("glitch-spawnobjects:createNewSyncedObject", function(model, data, sceneType, duration)
     local src = source
-    createSyncedObject(src, model, data, sceneType)
+    createSyncedObject(src, model, data, sceneType, duration)
 end)
 
 local function updateSyncedObject(src, model, data, objectID)
@@ -157,7 +186,12 @@ local function updateSyncedObject(src, model, data, objectID)
                     }
                     TriggerClientEvent("glitch-spawnobjects:addNewSyncedObject", -1, updatedProp)
 
-                    sendDiscordLog(src, "Synced Objects", GetPlayerName(src).." ["..steamIdentifier.."] ("..src..") updated a synced object (" .. model .. ") at position: (" .. posX .. ", " .. posY .. ", " .. posZ .. ") and rotation: (" .. rotX .. ", " .. rotY .. ", " .. rotZ .. ") with id: ("..objectID..")")
+                    sendDiscordLog(src, "Synced Objects", "**OBJECT UPDATED**\n" ..
+                        "Player: " .. GetPlayerName(src) .. " [" .. steamIdentifier .. "] (" .. src .. ")\n" ..
+                        "Model: " .. model .. "\n" ..
+                        "New Position: (" .. posX .. ", " .. posY .. ", " .. posZ .. ")\n" ..
+                        "New Rotation: (" .. rotX .. ", " .. rotY .. ", " .. rotZ .. ")\n" ..
+                        "Object ID: " .. objectID)
                 else
                     TriggerClientEvent('ox_lib:notify', src, {title = '', description = "An error occurred while updating the synced object!", type = "error", duration = 5000})
                 end
@@ -197,7 +231,20 @@ local function deleteSyncedObject(src, id)
                             TriggerClientEvent("glitch-spawnobjects:receiveDeletedSyncedObject", -1, id)
                             TriggerClientEvent('ox_lib:notify', src, {title = '', description = "The synced object ("..model..") was successfully removed.", type = "success", duration = 5000})
 
-                            sendDiscordLog(src, "Synced Objects", GetPlayerName(src).." ["..steamIdentifier.."] ("..src..") deleted a synced object (" .. model .. ") at position: (" .. posX .. ", " .. posY .. ", " .. posZ .. ") with id: ("..id..")")
+                            local expiryInfo = ""
+                            if object.expiryTime then
+                                expiryInfo = "\nExpiry Time: " .. os.date("%Y-%m-%d %H:%M:%S", object.expiryTime)
+                            else
+                                expiryInfo = "\nDuration: Permanent"
+                            end
+                            
+                            local sceneInfo = object.sceneType and ("\nScene Type: " .. object.sceneType) or "\nScene Type: None"
+                            
+                            sendDiscordLog(src, "Synced Objects", "**OBJECT DELETED**\n" ..
+                                "Player: " .. GetPlayerName(src) .. " [" .. steamIdentifier .. "] (" .. src .. ")\n" ..
+                                "Model: " .. model .. "\n" ..
+                                "Position: (" .. posX .. ", " .. posY .. ", " .. posZ .. ")\n" ..
+                                "Object ID: " .. id .. sceneInfo .. expiryInfo)
                         else
                             TriggerClientEvent('ox_lib:notify', src, {title = '', description = "Error occured while deleting the synced object ("..model..")", type = "error", duration = 5000})
                         end
@@ -216,9 +263,58 @@ AddEventHandler("glitch-spawnobjects:deleteSyncedObject", function(id)
     deleteSyncedObject(src, id)
 end)
 
+CreateThread(function()
+    while true do
+        Wait(60000)
+        
+        local currentTime = os.time()
+        
+        MySQL.query('SELECT id, model, posX, posY, posZ, identifier, sceneType, expiryTime FROM synced_objects WHERE expiryTime IS NOT NULL AND expiryTime <= ?', {currentTime}, function(expiredObjects)
+            if expiredObjects and #expiredObjects > 0 then
+                local expiredIds = {}
+                local logDetails = {}
+                
+                for _, obj in ipairs(expiredObjects) do
+                    table.insert(expiredIds, obj.id)
+                    table.insert(logDetails, string.format("ID: %s | Model: %s | Pos: (%.2f, %.2f, %.2f) | Creator: %s | Scene: %s | Expired: %s", 
+                        obj.id, obj.model, obj.posX, obj.posY, obj.posZ, 
+                        obj.identifier or "Unknown", obj.sceneType or "None", 
+                        os.date("%Y-%m-%d %H:%M:%S", obj.expiryTime)))
+                end
+                
+                local placeholders = string.rep("?,", #expiredIds):sub(1, -2)
+                MySQL.query('DELETE FROM synced_objects WHERE id IN (' .. placeholders .. ')', expiredIds, function(deleteResult)
+                    if deleteResult then
+                        for _, objId in ipairs(expiredIds) do
+                            TriggerClientEvent("glitch-spawnobjects:receiveDeletedSyncedObject", -1, objId)
+                        end
+                        
+                        if Config.Debug then
+                            print(string.format("^3[Glitch Spawn Objects] Cleaned up %d expired objects:^0", #expiredIds))
+                            for _, detail in ipairs(logDetails) do
+                                print("^3  " .. detail .. "^0")
+                            end
+                        end
+                        
+                        if #expiredIds > 0 then
+                            local discordMessage = "**AUTOMATIC CLEANUP**\n" ..
+                                "Removed " .. #expiredIds .. " expired objects:\n```\n"
+                            for _, detail in ipairs(logDetails) do
+                                discordMessage = discordMessage .. detail .. "\n"
+                            end
+                            discordMessage = discordMessage .. "```"
+                            sendDiscordLog(nil, "Synced Objects", discordMessage)
+                        end
+                    end
+                end)
+            end
+        end)
+    end
+end)
+
 -- Exports
-exports('createObject', function(src, model, data, sceneType)
-    return createSyncedObject(src, model, data, sceneType)
+exports('createObject', function(src, model, data, sceneType, duration)
+    return createSyncedObject(src, model, data, sceneType, duration)
 end)
 
 exports('updateObject', function(src, model, data, objectID)

@@ -208,7 +208,7 @@ function moveSyncedObject(object)
         local obj = CreateObject(GetHashKey(object.model), object.posX, object.posY, object.posZ, false, false, false)
         SetEntityCoords(obj, object.posX, object.posY, object.posZ, false, false, false, false)
         SetEntityRotation(obj, object.rotX, object.rotY, object.rotZ, 2, true)
-        local data = exports["glitch-spawnobjects"]:useGizmo(obj)
+        local data = useGizmo(obj)
 
         if data then
             removeObject(obj)
@@ -233,12 +233,14 @@ RegisterCommand(Config.commands.spawnObject, function()
         local input = lib.inputDialog(locale('synced_object_dialog'), {
             {type = 'input', label = locale('model_label'), description = locale('model_description'), required = true},
             {type = 'input', label = locale('scene_type_label'), description = locale('scene_type_description')},
+            {type = 'number', label = 'Duration (minutes)', description = 'How long the object should exist (leave empty for permanent)', min = 1, max = 10080},
         })
 
         if not input then return end
 
         local model = input[1]
         local sceneType = input[2]
+        local duration = input[3]
 
         if not IsModelValid(model) then
             lib.notify({title = "", description = string.format(locale('invalid_model'), model), type = "error"})
@@ -249,12 +251,12 @@ RegisterCommand(Config.commands.spawnObject, function()
         lib.requestModel(GetHashKey(model))
         local obj = CreateObject(GetHashKey(model), offset.x, offset.y, offset.z, false, false, false)
         SetEntityCoords(obj, offset.x, offset.y, offset.z, false, false, false, false)
-        local data = exports["glitch-spawnobjects"]:useGizmo(obj)
+        local data = useGizmo(obj)
         removeObject(obj)
         SetModelAsNoLongerNeeded(GetHashKey(model))
 
         if data then    
-            TriggerServerEvent("glitch-spawnobjects:createNewSyncedObject", model, data, sceneType)
+            TriggerServerEvent("glitch-spawnobjects:createNewSyncedObject", model, data, sceneType, duration)
         end
     else
         lib.notify({title = "", description = locale('invalid_permission'), type = "error", duration = 3000})
