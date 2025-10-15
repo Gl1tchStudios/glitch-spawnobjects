@@ -18,7 +18,13 @@ CreateThread(function()
                     print(("^1[WARNING]^0 You are not running the latest version of ^3%s^0!"):format(resourceName))
                     print(("^1[WARNING]^0 Please update! (Latest: ^2v%s^0 | Yours: ^1v%s^0)"):format(latestVersion, currentVersion))
                     print("^3Changelog:^0")
-                    print("  "..json.changelog or "  • No changelog provided")
+                    if json.changelog and type(json.changelog) == "table" then
+                        for i, change in ipairs(json.changelog) do
+                            print("  • " .. tostring(change))
+                        end
+                    else
+                        print("  • No changelog provided")
+                    end
                     print("^3Discord:^0")
                     print("  • Patch notes and support are available on Discord.")
                     print("  • " .. (json.discord or "No link provided"))
