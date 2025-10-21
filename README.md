@@ -46,6 +46,7 @@ A massive shoutout to the brilliant developers whose work made this resource pos
 - **[Andyyy7666](https://github.com/overextended/ox_lib/pull/453)** for the gizmo functionality enhancements in ox_lib
 - **[AvarianKnight](https://forum.cfx.re/t/allow-drawgizmo-to-be-used-outside-of-fxdk/5091845/8?u=demi-automatic)** for making DrawGizmo accessible outside of FXDK
 - **[DemiAutomatic](https://github.com/DemiAutomatic/object_gizmo)** for the original object gizmo implementation
+- **[DurtyFree](https://github.com/DurtyFree/gta-v-data-dumps)** for maintaining the comprehensive GTA V Data Dumps repository, providing the complete object list used in this resource
 
 These legends have paved the way for better object manipulation tools in FiveM. Without their hard work and willingness to share their knowledge, this resource wouldn't exist.
 

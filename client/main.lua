@@ -100,10 +100,21 @@ AddEventHandler('onClientResourceStart', function(resourceName)
     if GetCurrentResourceName() == resourceName then
         TriggerServerEvent('glitch-spawnobjects:requestSyncedObjects')
 
+        if Config.enablePredefinedProps then
+            CreateThread(function()
+                Config.predefinedProps = lib.callback.await('glitch-spawnobjects:getPredefinedProps', false)
+            end)
+        end
+
         Wait(3000)
         TriggerEvent("chat:addSuggestion", "/"..Config.commands.spawnObject, "Spawn a synced object.")
 		TriggerEvent("chat:addSuggestion", "/"..Config.commands.syncedObjects, "Open the synced objects menu.")
     end
+end)
+
+RegisterNetEvent('glitch-spawnobjects:receivePredefinedProps')
+AddEventHandler('glitch-spawnobjects:receivePredefinedProps', function(props)
+    Config.predefinedProps = props
 end)
 
 RegisterNetEvent('glitch-spawnobjects:receiveSyncedObjects')
@@ -230,17 +241,81 @@ end
 
 RegisterCommand(Config.commands.spawnObject, function()
     if isAllowedAccess() then
-        local input = lib.inputDialog(locale('synced_object_dialog'), {
-            {type = 'input', label = locale('model_label'), description = locale('model_description'), required = true},
-            {type = 'input', label = locale('scene_type_label'), description = locale('scene_type_description')},
-            {type = 'number', label = 'Duration (minutes)', description = 'How long the object should exist (leave empty for permanent)', min = 1, max = 10080},
+        local inputFields = {}
+        
+        if Config.enablePredefinedProps then
+            if not Config.predefinedProps or #Config.predefinedProps == 0 then
+                lib.notify({title = "", description = locale('props_not_loaded'), type = "warning", duration = 3000})
+                return
+            end
+            
+            table.insert(inputFields, {
+                type = 'input',
+                label = locale('note_label'),
+                description = locale('model_selection_note'),
+                disabled = true,
+                default = locale('model_selection_note_default')
+            })
+            
+            table.insert(inputFields, {
+                type = 'select',
+                label = locale('predefined_model_label'),
+                description = locale('predefined_model_description'),
+                options = Config.predefinedProps,
+                icon = 'box',
+                searchable = true,
+                clearable = true
+            })
+        end
+
+        table.insert(inputFields, {
+            type = 'input',
+            label = Config.enablePredefinedProps and locale('custom_model_label') or locale('model_label'),
+            description = Config.enablePredefinedProps and locale('custom_model_description') or locale('model_description'),
         })
+        
+        table.insert(inputFields, {
+            type = 'input',
+            label = locale('scene_type_label'),
+            description = locale('scene_type_description')
+        })
+        
+        table.insert(inputFields, {
+            type = 'number',
+            label = 'Duration (minutes)',
+            description = 'How long the object should exist (leave empty for permanent)',
+            min = 1,
+            max = Config.maxDuration
+        })
+        
+        local input = lib.inputDialog(locale('synced_object_dialog'), inputFields)
 
         if not input then return end
 
-        local model = input[1]
-        local sceneType = input[2]
-        local duration = input[3]
+        local model, sceneType, duration
+        
+        if Config.enablePredefinedProps then
+            local predefinedModel = input[2]
+            local manualModel = input[3]
+            sceneType = input[4]
+            duration = input[5]
+            
+            if predefinedModel and predefinedModel ~= "" and manualModel and manualModel ~= "" then
+                lib.notify({title = "", description = locale('both_model_fields_error'), type = "error"})
+                return
+            end
+            
+            if (not predefinedModel or predefinedModel == "") and (not manualModel or manualModel == "") then
+                lib.notify({title = "", description = locale('no_model_selected_error'), type = "error"})
+                return
+            end
+            
+            model = (predefinedModel and predefinedModel ~= "") and predefinedModel or manualModel
+        else
+            model = input[1]
+            sceneType = input[2]
+            duration = input[3]
+        end
 
         if not IsModelValid(model) then
             lib.notify({title = "", description = string.format(locale('invalid_model'), model), type = "error"})

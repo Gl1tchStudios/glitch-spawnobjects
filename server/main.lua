@@ -1,3 +1,50 @@
+local function fetchPredefinedProps()
+    if not Config.enablePredefinedProps or not Config.predefinedPropsUrl then
+        return
+    end
+
+    PerformHttpRequest(Config.predefinedPropsUrl, function(statusCode, response, headers)
+        if statusCode == 200 and response then
+            local props = {}
+            local count = 0
+            
+            -- Parse the INI file - each line is an object name
+            for line in response:gmatch("[^\r\n]+") do
+                -- Skip empty lines and comments
+                if line ~= "" and not line:match("^%s*;") and not line:match("^%s*%[") then
+                    local objectName = line:match("^%s*(.-)%s*$") -- Trim whitespace
+                    if objectName and objectName ~= "" then
+                        table.insert(props, {
+                            value = objectName,
+                            label = objectName
+                        })
+                        count = count + 1
+                    end
+                end
+            end
+            
+            Config.predefinedProps = props
+            
+            if Config.Debug then
+                print(string.format("^2[glitch-spawnobjects]^7 Successfully loaded %d objects from GitHub", count))
+            end
+            
+            TriggerClientEvent('glitch-spawnobjects:receivePredefinedProps', -1, props)
+        else
+            print(string.format("^1[glitch-spawnobjects]^7 Failed to fetch object list from GitHub (Status: %s)", statusCode))
+        end
+    end, 'GET')
+end
+
+CreateThread(function()
+    Wait(1000)
+    fetchPredefinedProps()
+end)
+
+lib.callback.register('glitch-spawnobjects:getPredefinedProps', function(source)
+    return Config.predefinedProps
+end)
+
 local function isAllowedAccess(src)
     if Config.permissionSystem == "everyone" then
         return true
