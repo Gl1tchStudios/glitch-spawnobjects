@@ -19,7 +19,7 @@ For detailed setup instructions and usage examples, check out our documentation:
 
 [![Glitch Spawn Objects Showcase](https://img.youtube.com/vi/E7-THYpyLZs/0.jpg)](https://www.youtube.com/watch?v=E7-THYpyLZs)
 
-*If the preview above doesn't load, you can watch the showcase video here: https://www.youtube.com/watch?v=E7-THYpyLZs*
+*You can watch the showcase video here: https://www.youtube.com/watch?v=E7-THYpyLZs*
 
 ## 🛠️ Installation
 

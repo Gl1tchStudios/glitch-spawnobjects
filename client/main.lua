@@ -1,9 +1,74 @@
 lib.locale()
 local objectList = {}
+local clientPredefinedProps = {}
+local propsLoaded = false
+local propsLoading = false
+
+local function loadPredefinedPropsInChunks()
+    if propsLoaded or propsLoading then
+        return true
+    end
+    
+    propsLoading = true
+    
+    local totalCount = lib.callback.await('glitch-spawnobjects:getPredefinedPropsCount', false)
+    
+    if not totalCount or totalCount == 0 then
+        propsLoading = false
+        return false
+    end
+    
+    if Config.Debug then
+        print(string.format("^2[DEBUG] Loading %d predefined props in chunks...^0", totalCount))
+    end
+    
+    local CHUNK_SIZE = Config.propsChunkSize or 1000
+    clientPredefinedProps = {}
+    
+    for startIndex = 1, totalCount, CHUNK_SIZE do
+        local endIndex = math.min(startIndex + CHUNK_SIZE - 1, totalCount)
+        local chunk = lib.callback.await('glitch-spawnobjects:getPredefinedPropsChunk', false, startIndex, endIndex)
+        
+        if chunk and #chunk > 0 then
+            for _, prop in ipairs(chunk) do
+                table.insert(clientPredefinedProps, prop)
+            end
+            
+            if Config.Debug then
+                print(string.format("^2[DEBUG] Loaded chunk %d-%d (%d props, total: %d)^0", 
+                    startIndex, endIndex, #chunk, #clientPredefinedProps))
+            end
+        end
+        
+        Wait(10)
+    end
+    
+    propsLoaded = true
+    propsLoading = false
+    
+    if Config.Debug then
+        print(string.format("^2[DEBUG] Finished loading %d predefined props^0", #clientPredefinedProps))
+    end
+    
+    return true
+end
 
 local function isAllowedAccess()
     local hasPermission = lib.callback.await('glitch-spawnobjects:checkPermission', false)
     return hasPermission
+end
+
+if Config.enablePredefinedProps and Config.preloadProps then
+    CreateThread(function()
+        Wait(5000)
+        
+        if not propsLoaded and isAllowedAccess() then
+            if Config.Debug then
+                print("^2[DEBUG] Starting background preload of predefined props^0")
+            end
+            loadPredefinedPropsInChunks()
+        end
+    end)
 end
 
 CreateThread(function()
@@ -99,22 +164,11 @@ end)
 AddEventHandler('onClientResourceStart', function(resourceName)
     if GetCurrentResourceName() == resourceName then
         TriggerServerEvent('glitch-spawnobjects:requestSyncedObjects')
-
-        if Config.enablePredefinedProps then
-            CreateThread(function()
-                Config.predefinedProps = lib.callback.await('glitch-spawnobjects:getPredefinedProps', false)
-            end)
-        end
-
+        
         Wait(3000)
         TriggerEvent("chat:addSuggestion", "/"..Config.commands.spawnObject, "Spawn a synced object.")
 		TriggerEvent("chat:addSuggestion", "/"..Config.commands.syncedObjects, "Open the synced objects menu.")
     end
-end)
-
-RegisterNetEvent('glitch-spawnobjects:receivePredefinedProps')
-AddEventHandler('glitch-spawnobjects:receivePredefinedProps', function(props)
-    Config.predefinedProps = props
 end)
 
 RegisterNetEvent('glitch-spawnobjects:receiveSyncedObjects')
@@ -244,24 +298,24 @@ RegisterCommand(Config.commands.spawnObject, function()
         local inputFields = {}
         
         if Config.enablePredefinedProps then
-            if not Config.predefinedProps or #Config.predefinedProps == 0 then
-                lib.notify({title = "", description = locale('props_not_loaded'), type = "warning", duration = 3000})
-                return
+            if not propsLoaded then
+                lib.notify({title = "", description = "Loading predefined props, please wait...", type = "info", duration = 3000})
+                
+                local success = loadPredefinedPropsInChunks()
+                
+                if not success or #clientPredefinedProps == 0 then
+                    lib.notify({title = "", description = locale('props_not_loaded'), type = "warning", duration = 3000})
+                    return
+                end
+                
+                lib.notify({title = "", description = string.format("Loaded %d props successfully!", #clientPredefinedProps), type = "success", duration = 2000})
             end
-            
-            table.insert(inputFields, {
-                type = 'input',
-                label = locale('note_label'),
-                description = locale('model_selection_note'),
-                disabled = true,
-                default = locale('model_selection_note_default')
-            })
             
             table.insert(inputFields, {
                 type = 'select',
                 label = locale('predefined_model_label'),
                 description = locale('predefined_model_description'),
-                options = Config.predefinedProps,
+                options = clientPredefinedProps,
                 icon = 'box',
                 searchable = true,
                 clearable = true
@@ -295,10 +349,10 @@ RegisterCommand(Config.commands.spawnObject, function()
         local model, sceneType, duration
         
         if Config.enablePredefinedProps then
-            local predefinedModel = input[2]
-            local manualModel = input[3]
-            sceneType = input[4]
-            duration = input[5]
+            local predefinedModel = input[1]
+            local manualModel = input[2]
+            sceneType = input[3]
+            duration = input[4]
             
             if predefinedModel and predefinedModel ~= "" and manualModel and manualModel ~= "" then
                 lib.notify({title = "", description = locale('both_model_fields_error'), type = "error"})

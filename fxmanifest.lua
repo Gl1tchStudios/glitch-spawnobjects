@@ -4,7 +4,7 @@ lua54 'yes'
 
 author 'Slurpy in collaboration with Glitch Studios'
 description 'FiveM resource for spawning and managing persistent objects across your server'
-version '1.1.0'
+version '1.1.1'
 
 client_script {
     'client/main.lua',

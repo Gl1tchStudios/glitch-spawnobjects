@@ -1,39 +1,113 @@
+local function loadCustomPredefinedProps()
+    local props = {}
+    local count = 0
+    
+    for _, objectName in ipairs(Config.customPredefinedProps) do
+        if objectName and objectName ~= "" then
+            table.insert(props, {
+                value = objectName,
+                label = objectName
+            })
+            count = count + 1
+        end
+    end
+    
+    if Config.Debug then
+        print(string.format("^2[glitch-spawnobjects]^7 Loaded %d custom predefined objects", count))
+    end
+    
+    return props
+end
+
+local function removeDuplicates(propsList)
+    local seen = {}
+    local uniqueProps = {}
+    
+    for _, prop in ipairs(propsList) do
+        if not seen[prop.value] then
+            seen[prop.value] = true
+            table.insert(uniqueProps, prop)
+        end
+    end
+    
+    return uniqueProps
+end
+
 local function fetchPredefinedProps()
-    if not Config.enablePredefinedProps or not Config.predefinedPropsUrl then
+    if not Config.enablePredefinedProps then
         return
     end
 
-    PerformHttpRequest(Config.predefinedPropsUrl, function(statusCode, response, headers)
-        if statusCode == 200 and response then
-            local props = {}
-            local count = 0
-            
-            -- Parse the INI file - each line is an object name
-            for line in response:gmatch("[^\r\n]+") do
-                -- Skip empty lines and comments
-                if line ~= "" and not line:match("^%s*;") and not line:match("^%s*%[") then
-                    local objectName = line:match("^%s*(.-)%s*$") -- Trim whitespace
-                    if objectName and objectName ~= "" then
-                        table.insert(props, {
-                            value = objectName,
-                            label = objectName
-                        })
-                        count = count + 1
+    local finalProps = {}
+    local totalCount = 0
+    
+    if Config.propsSource == "custom" or Config.propsSource == "both" then
+        local customProps = loadCustomPredefinedProps()
+        for _, prop in ipairs(customProps) do
+            table.insert(finalProps, prop)
+            totalCount = totalCount + 1
+        end
+    end
+    
+    if Config.propsSource == "url" or Config.propsSource == "both" then
+        if Config.predefinedPropsUrl and Config.predefinedPropsUrl ~= "" then
+            PerformHttpRequest(Config.predefinedPropsUrl, function(statusCode, response, headers)
+                if statusCode == 200 and response then
+                    local urlProps = {}
+                    local urlCount = 0
+                    
+                    for line in response:gmatch("[^\r\n]+") do
+                        if line ~= "" and not line:match("^%s*;") and not line:match("^%s*%[") then
+                            local objectName = line:match("^%s*(.-)%s*$")
+                            if objectName and objectName ~= "" then
+                                table.insert(urlProps, {
+                                    value = objectName,
+                                    label = objectName
+                                })
+                                urlCount = urlCount + 1
+                            end
+                        end
+                    end
+                    
+                    for _, prop in ipairs(urlProps) do
+                        table.insert(finalProps, prop)
+                    end
+                    
+                    finalProps = removeDuplicates(finalProps)
+                    local finalCount = #finalProps
+                    
+                    Config.predefinedProps = finalProps
+                    
+                    if Config.Debug then
+                        print(string.format("^2[glitch-spawnobjects]^7 Successfully loaded %d objects from URL", urlCount))
+                        print(string.format("^2[glitch-spawnobjects]^7 Total loaded %d unique predefined objects (Source: %s)", finalCount, Config.propsSource))
+                        if finalCount < (totalCount + urlCount) then
+                            print(string.format("^3[glitch-spawnobjects]^7 Removed %d duplicate objects", (totalCount + urlCount) - finalCount))
+                        end
+                    end
+                else
+                    print(string.format("^1[glitch-spawnobjects]^7 Failed to fetch object list from URL (Status: %s)", statusCode))
+                    Config.predefinedProps = finalProps
+                    
+                    if Config.Debug then
+                        print(string.format("^2[glitch-spawnobjects]^7 Total loaded %d predefined objects (Source: custom only due to URL failure)", totalCount))
                     end
                 end
-            end
-            
-            Config.predefinedProps = props
+            end, 'GET')
+        else
+            Config.predefinedProps = finalProps
             
             if Config.Debug then
-                print(string.format("^2[glitch-spawnobjects]^7 Successfully loaded %d objects from GitHub", count))
+                print(string.format("^2[glitch-spawnobjects]^7 Total loaded %d predefined objects (Source: custom only - no URL configured)", totalCount))
             end
-            
-            TriggerClientEvent('glitch-spawnobjects:receivePredefinedProps', -1, props)
-        else
-            print(string.format("^1[glitch-spawnobjects]^7 Failed to fetch object list from GitHub (Status: %s)", statusCode))
         end
-    end, 'GET')
+    else
+        Config.predefinedProps = finalProps
+        
+        if Config.Debug then
+            print(string.format("^2[glitch-spawnobjects]^7 Total loaded %d predefined objects (Source: %s)", totalCount, Config.propsSource))
+        end
+    end
 end
 
 CreateThread(function()
@@ -41,8 +115,29 @@ CreateThread(function()
     fetchPredefinedProps()
 end)
 
-lib.callback.register('glitch-spawnobjects:getPredefinedProps', function(source)
-    return Config.predefinedProps
+lib.callback.register('glitch-spawnobjects:getPredefinedPropsCount', function(source)
+    return #Config.predefinedProps
+end)
+
+lib.callback.register('glitch-spawnobjects:getPredefinedPropsChunk', function(source, startIndex, endIndex)
+    if not Config.predefinedProps or #Config.predefinedProps == 0 then
+        return {}
+    end
+    
+    local chunk = {}
+    local actualEnd = math.min(endIndex, #Config.predefinedProps)
+    
+    for i = startIndex, actualEnd do
+        if Config.predefinedProps[i] then
+            table.insert(chunk, Config.predefinedProps[i])
+        end
+    end
+    
+    if Config.Debug then
+        print(string.format("^2[glitch-spawnobjects]^7 Sending chunk %d-%d (%d props) to player %s", startIndex, actualEnd, #chunk, source))
+    end
+    
+    return chunk
 end)
 
 local function isAllowedAccess(src)
@@ -56,7 +151,6 @@ local function isAllowedAccess(src)
             if string.match(id, "discord:") then
                 local discordId = string.gsub(id, "discord:", "")
                 for _, role in ipairs(Config.allowedDiscordAccess) do
-                    -- YOU ARE REQUIRED TO ADD YOUR OWN DISCORD PERMISSION CHECKING LOGIC HERE
                     return true
                 end
             end
@@ -359,7 +453,6 @@ CreateThread(function()
     end
 end)
 
--- Exports
 exports('createObject', function(src, model, data, sceneType, duration)
     return createSyncedObject(src, model, data, sceneType, duration)
 end)

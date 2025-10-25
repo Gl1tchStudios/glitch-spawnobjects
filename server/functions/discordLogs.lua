@@ -25,7 +25,7 @@ end
 
 function sendDiscordLog(source, title, message)
     local webhook = getApiKey('discordWebhook')
-    if not webhook or webhook == '' or webhook == 'YOUR_DISCORD_WEBHOOK_API_KEY_HERE' then
+    if not webhook or webhook == '' then
         print("Discord webhook URL is not set. Please set it in apiKeys.lua.")
         return
     end

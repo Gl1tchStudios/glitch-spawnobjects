@@ -44,7 +44,6 @@ end
 
 AddEventHandler('onResourceStart', function(resourceName)
     if GetCurrentResourceName() == resourceName then
-        Wait(3000)
         createDatabaseTable()
     end
 end)
